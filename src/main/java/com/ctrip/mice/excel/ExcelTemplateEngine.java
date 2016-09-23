@@ -1,14 +1,19 @@
 package com.ctrip.mice.excel;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * Created by q.chen on 2016/9/23.
+ * Excel Template Engine
  */
-public class ExcelTemplateEngine {
+public class ExcelTemplateEngine<T> {
 
     /**
      * to match loop
@@ -35,7 +40,12 @@ public class ExcelTemplateEngine {
      */
     private Pattern includeText = Pattern.compile("\\{include:([a-zA-Z_0-9]+):([a-zA-Z_0-9]+)}");
 
-    private HSSFWorkbook workbook;
+    /**
+     * excel file instance
+     */
+    private XSSFWorkbook workbook;
+
+    private Map<String, T> dataSource;
 
     /**
      * constructor
@@ -45,7 +55,7 @@ public class ExcelTemplateEngine {
      */
     public ExcelTemplateEngine(String filePath) throws IOException {
         FileInputStream fileInputStream = new FileInputStream(filePath);
-        workbook = new HSSFWorkbook(fileInputStream);
+        workbook = new XSSFWorkbook(fileInputStream);
     }
 
     /**
@@ -55,7 +65,7 @@ public class ExcelTemplateEngine {
      * @throws IOException if the stream cannot be read
      */
     public ExcelTemplateEngine(InputStream inputStream) throws IOException {
-        workbook = new HSSFWorkbook(inputStream);
+        workbook = new XSSFWorkbook(inputStream);
     }
 
     /**
@@ -68,14 +78,46 @@ public class ExcelTemplateEngine {
     }
 
     /**
-     * write to output stream
-     * @return a new instance of output stream
+     * get result output stream
+     * @return result output stream
      * @throws IOException if cannot write
      */
-    public OutputStream writeToStream() throws IOException{
+    public OutputStream getResultOutputStream() throws IOException{
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         return outputStream;
+    }
+
+    /**
+     * Render Engine
+     * @param mainTemplateName excel name
+     * @param dataToRender data that to be render
+     */
+    public void Render(String mainTemplateName, T dataToRender) {
+        XSSFSheet wsMain = workbook.getSheet(mainTemplateName);
+        int rowEnd = wsMain.getLastRowNum();
+        int colEnd = getLastColNum(wsMain);
+    }
+
+    /**
+     * count max column number
+     * @param sheet work sheet
+     * @return last column number
+     */
+    private int getLastColNum(XSSFSheet sheet) {
+        int maxCol = 1;
+        Iterator<Row> iterator =sheet.rowIterator();
+        while (iterator.hasNext()) {
+            Row row = iterator.next();
+            int lastCellNum = row.getLastCellNum();
+            maxCol = lastCellNum > maxCol ? lastCellNum : maxCol;
+        }
+        return maxCol;
+    }
+
+
+    private void RenderPrimitiveValue(){
+
     }
 
 }
