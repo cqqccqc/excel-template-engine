@@ -1,5 +1,6 @@
 package com.ctrip.mice.excel;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -7,6 +8,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -43,7 +45,7 @@ public class ExcelTemplateEngine<T> {
     /**
      * excel file instance
      */
-    private XSSFWorkbook workbook;
+    public XSSFWorkbook workbook;
 
     private Map<String, T> dataSource;
 
@@ -89,17 +91,6 @@ public class ExcelTemplateEngine<T> {
     }
 
     /**
-     * Render Engine
-     * @param mainTemplateName excel name
-     * @param dataToRender data that to be render
-     */
-    public void Render(String mainTemplateName, T dataToRender) {
-        XSSFSheet wsMain = workbook.getSheet(mainTemplateName);
-        int rowEnd = wsMain.getLastRowNum();
-        int colEnd = getLastColNum(wsMain);
-    }
-
-    /**
      * count max column number
      * @param sheet work sheet
      * @return last column number
@@ -115,6 +106,48 @@ public class ExcelTemplateEngine<T> {
         return maxCol;
     }
 
+    /**
+     * Render Engine
+     * @param mainTemplateName excel name
+     * @param dataToRender data that to be render
+     */
+    public void Render(String mainTemplateName, T dataToRender) {
+        XSSFSheet wsMain = workbook.getSheet(mainTemplateName);
+        // this value will be calculated and updated after insert value into the sheet
+        int rowEnd = wsMain.getLastRowNum();
+        int colEnd = getLastColNum(wsMain);
+    }
+
+    /**
+     * Render function
+     * called recursively to render every entry
+     * if this cell's value is template string, then render next cell.
+     * if this cell's value is field name, render field's value directly.
+     * otherwise if this cell's value is a template direction,
+     * check if it is a 'loop' direction or not.
+     * if it is an 'if' direction, evaluate its value and parse it into 'include' direction.
+     * Then render the sub template by call the render function recursively.
+     * Finally, if it is a 'loop' direction, call the render function recursively throw each entry of the list
+     *
+     * @param sheet the sheet to be rendered
+     * @param rowStart row start
+     * @param colStart column start
+     * @param rowEnd row end
+     * @param colEnd column end
+     */
+    public void RenderTemplate(XSSFSheet sheet, int rowStart, int colStart, int rowEnd, int colEnd) {
+        // if rowStart > rowEnd and colStart > colEnd, end render
+        if(rowStart > rowEnd && colStart > colEnd) return;
+
+        // get cell
+        Cell cell = sheet.getRow(rowStart).getCell(colStart);
+        String value = cell.getStringCellValue();
+
+        // if value not match '{}', which means it is just a normal template string, continue to render next cell
+        Matcher matcher = matchAllText.matcher(value);
+        if(!matcher.find())
+            RenderTemplate(sheet, ++rowStart, ++colStart, rowEnd, colEnd);
+    }
 
     private void RenderPrimitiveValue(){
 
