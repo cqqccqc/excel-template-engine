@@ -2,6 +2,7 @@ package com.ctrip.mice.excel;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFShape;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -33,7 +34,7 @@ public class ExcelTemplateEngineTest {
         try {
             ClassLoader classLoader = getClass().getClassLoader();
             String path = classLoader.getResource("OrderListReport.xlsx").getPath();
-            ExcelTemplateEngine<Order> excelTemplateEngine = new ExcelTemplateEngine<>(path);
+            ExcelTemplateEngine excelTemplateEngine = new ExcelTemplateEngine(path);
             System.out.print(path);
         } catch (Exception e) {
             e.printStackTrace();
@@ -74,6 +75,7 @@ public class ExcelTemplateEngineTest {
         Pattern matchAllText = Pattern.compile("\\{([a-zA-Z_0-9:.#]+)}");
         Matcher matcherTrue = matchAllText.matcher("fds{fff}fsd");
         boolean canFind = matcherTrue.find();
+        System.out.println(matcherTrue.group());
         System.out.println(canFind);
         Assert.assertTrue(canFind);
 
@@ -81,13 +83,37 @@ public class ExcelTemplateEngineTest {
         boolean cantFind = matcherFalse.find();
         System.out.println(cantFind);
         Assert.assertFalse(cantFind);
+
+        Pattern varNameText = Pattern.compile("\\{([a-zA-Z_0-9]+)}");
+    }
+
+    /**
+     * Test render primitive value
+     * @throws IOException can't write file
+     * @throws NullPointerException  can't get file
+     */
+    @Test
+    public void testRenderPrimitive() throws IOException, NullPointerException {
+        ExcelTemplateEngine templateEngine =
+                new ExcelTemplateEngine(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
+        templateEngine.renderTemplate(templateEngine.workbook.getSheet("订单"), new Order(), 0, 0, 1, 3);
+        File file = new File("/Users/chenqi/Develop/test.xlsx");
+        if(!file.exists()) {
+            file.createNewFile();
+        }
+        FileOutputStream fileOutputStream = new FileOutputStream("/Users/chenqi/Develop/test.xlsx");
+
+        ByteArrayOutputStream byteArrayOutputStream = (ByteArrayOutputStream)templateEngine.getResultOutputStream();
+        fileOutputStream.write(byteArrayOutputStream.toByteArray());
     }
 
     @Test
-    public void testRender() throws IOException, NullPointerException {
-        ExcelTemplateEngine<Order> templateEngine =
-                new ExcelTemplateEngine<Order>(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
-        templateEngine.RenderTemplate(templateEngine.workbook.getSheet("订单"), 1, 1, 2, 4);
+    public void testRenderPrimitiveValue() throws IOException {
+        ExcelTemplateEngine templateEngine =
+                new ExcelTemplateEngine(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
+        Sheet sheet = templateEngine.workbook.getSheet("订单");
+        templateEngine.renderPrimitiveValue(sheet.getRow(1).getCell(1), null);
+
         File file = new File("/Users/chenqi/Develop/test.xlsx");
         if(!file.exists()) {
             file.createNewFile();

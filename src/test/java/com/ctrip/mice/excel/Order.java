@@ -6,13 +6,13 @@ package com.ctrip.mice.excel;
  */
 public class Order {
 
-    private Double totalAmount;
+    private Double totalAmount = 100.21D;
 
-    private String moreRequirement;
+    private String moreRequirement = "more requirement";
 
-    private String remark;
+    private String remark = "remark remark";
 
-    private Long orderNo;
+    private Long orderNo = 20012345L;
 
     public Double getTotalAmount() {
         return totalAmount;

@@ -6,6 +6,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -15,7 +16,7 @@ import java.util.regex.Pattern;
  * Created by q.chen on 2016/9/23.
  * Excel Template Engine
  */
-public class ExcelTemplateEngine<T> {
+public class ExcelTemplateEngine {
 
     /**
      * to match loop
@@ -47,7 +48,7 @@ public class ExcelTemplateEngine<T> {
      */
     public XSSFWorkbook workbook;
 
-    private Map<String, T> dataSource;
+    private Map<String, Object> dataSource;
 
     /**
      * constructor
@@ -111,7 +112,7 @@ public class ExcelTemplateEngine<T> {
      * @param mainTemplateName excel name
      * @param dataToRender data that to be render
      */
-    public void Render(String mainTemplateName, T dataToRender) {
+    public void render(String mainTemplateName, Object dataToRender) {
         XSSFSheet wsMain = workbook.getSheet(mainTemplateName);
         // this value will be calculated and updated after insert value into the sheet
         int rowEnd = wsMain.getLastRowNum();
@@ -135,22 +136,54 @@ public class ExcelTemplateEngine<T> {
      * @param rowEnd row end
      * @param colEnd column end
      */
-    public void RenderTemplate(XSSFSheet sheet, int rowStart, int colStart, int rowEnd, int colEnd) {
+    public void renderTemplate(XSSFSheet sheet,Object dataToRender, int rowStart, int colStart, int rowEnd, int colEnd) {
         // if rowStart > rowEnd and colStart > colEnd, end render
         if(rowStart > rowEnd && colStart > colEnd) return;
 
+        // get row
+        Row row = sheet.getRow(rowStart);
+        if(row == null) {
+            return;
+        }
         // get cell
         Cell cell = sheet.getRow(rowStart).getCell(colStart);
-        String value = cell.getStringCellValue();
+        if(cell == null) {
+            renderTemplate(sheet, dataToRender, ++rowStart, 0, rowEnd, colEnd);
+            return;
+        }
 
+        String value = cell.getStringCellValue();
         // if value not match '{}', which means it is just a normal template string, continue to render next cell
         Matcher matcher = matchAllText.matcher(value);
         if(!matcher.find())
-            RenderTemplate(sheet, ++rowStart, ++colStart, rowEnd, colEnd);
+            renderTemplate(sheet, dataToRender, rowStart, ++colStart, rowEnd, colEnd);
+        else if(renderPrimitiveValue(cell, dataToRender)){
+            renderTemplate(sheet, dataToRender, rowStart, ++colStart, rowEnd, colEnd);
+        }
     }
 
-    private void RenderPrimitiveValue(){
-
+    public boolean renderPrimitiveValue(Cell cell, Object dataToRender){
+        Matcher matcher = varNameText.matcher(cell.getStringCellValue());
+        if(matcher.find()){
+            String matched = matcher.group();
+            matched = matched.substring(1, matched.length() - 1);
+            try {
+                // null object to render an empty string
+                if(dataToRender == null) {
+                    cell.setCellValue("");
+                    return true;
+                }
+                Field field = dataToRender.getClass().getDeclaredField(matched);
+                field.setAccessible(true);
+                Object replace = field.get(dataToRender);
+                cell.setCellValue(replace.toString());
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                e.printStackTrace();
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
 }
