@@ -209,7 +209,6 @@ public class ExcelTemplateEngine {
         Matcher matcher = includeText.matcher(cell.getStringCellValue());
         if(matcher.find()) {
             String matched = matcher.group();
-
             return true;
         }
         return false;

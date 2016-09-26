@@ -130,9 +130,23 @@ public class ExcelTemplateEngineTest {
         fileOutputStream.write(byteArrayOutputStream.toByteArray());
     }
 
+    @Test
     public void testMatchInclude() throws IOException {
         ExcelTemplateEngine templateEngine =
                 new ExcelTemplateEngine(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
+
+        Pattern includeText = Pattern.compile("\\{include:([a-zA-Z_0-9]+):([a-zA-Z_0-9]+)}");
+        Matcher matcher = includeText.matcher("{include:h1tpl:order}");
+        if (matcher.find()){
+            String s = matcher.group();
+            s = s.substring(1, s.length() -1);
+            String[] sArr = s.split(":");
+            for (String item :
+                    sArr) {
+                System.out.println(item);
+            }
+
+        }
     }
 }
 
