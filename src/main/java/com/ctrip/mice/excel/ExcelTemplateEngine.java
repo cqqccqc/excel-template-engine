@@ -53,6 +53,7 @@ public class ExcelTemplateEngine {
     /**
      * constructor
      * initialize the excel template
+     *
      * @param filePath file path
      * @throws IOException if the file not found
      */
@@ -64,6 +65,7 @@ public class ExcelTemplateEngine {
     /**
      * constructor
      * initialize the excel template
+     *
      * @param inputStream file input stream
      * @throws IOException if the stream cannot be read
      */
@@ -73,19 +75,21 @@ public class ExcelTemplateEngine {
 
     /**
      * write to output stream
+     *
      * @param outputStream out put stream to write
      * @throws IOException if cannot write
      */
-    public void writeToStream(ByteArrayOutputStream outputStream) throws IOException{
+    public void writeToStream(ByteArrayOutputStream outputStream) throws IOException {
         workbook.write(outputStream);
     }
 
     /**
      * get result output stream
+     *
      * @return result output stream
      * @throws IOException if cannot write
      */
-    public OutputStream getResultOutputStream() throws IOException{
+    public OutputStream getResultOutputStream() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         return outputStream;
@@ -93,12 +97,13 @@ public class ExcelTemplateEngine {
 
     /**
      * count max column number
+     *
      * @param sheet work sheet
      * @return last column number
      */
     private int getLastColNum(XSSFSheet sheet) {
         int maxCol = 1;
-        Iterator<Row> iterator =sheet.rowIterator();
+        Iterator<Row> iterator = sheet.rowIterator();
         while (iterator.hasNext()) {
             Row row = iterator.next();
             int lastCellNum = row.getLastCellNum();
@@ -109,8 +114,9 @@ public class ExcelTemplateEngine {
 
     /**
      * Render Engine
+     *
      * @param mainTemplateName excel name
-     * @param dataToRender data that to be render
+     * @param dataToRender     data that to be render
      */
     public void render(String mainTemplateName, Object dataToRender) {
         XSSFSheet wsMain = workbook.getSheet(mainTemplateName);
@@ -130,24 +136,24 @@ public class ExcelTemplateEngine {
      * Then render the sub template by call the render function recursively.
      * Finally, if it is a 'loop' direction, call the render function recursively throw each entry of the list
      *
-     * @param sheet the sheet to be rendered
+     * @param sheet    the sheet to be rendered
      * @param rowStart row start
      * @param colStart column start
-     * @param rowEnd row end
-     * @param colEnd column end
+     * @param rowEnd   row end
+     * @param colEnd   column end
      */
-    public void renderTemplate(XSSFSheet sheet,Object dataToRender, int rowStart, int colStart, int rowEnd, int colEnd) {
+    public void renderTemplate(XSSFSheet sheet, Object dataToRender, int rowStart, int colStart, int rowEnd, int colEnd) {
         // if rowStart > rowEnd and colStart > colEnd, end render
-        if(rowStart > rowEnd && colStart > colEnd) return;
+        if (rowStart > rowEnd && colStart > colEnd) return;
 
         // get row
         Row row = sheet.getRow(rowStart);
-        if(row == null) {
+        if (row == null) {
             return;
         }
         // get cell
         Cell cell = sheet.getRow(rowStart).getCell(colStart);
-        if(cell == null) {
+        if (cell == null) {
             renderTemplate(sheet, dataToRender, ++rowStart, 0, rowEnd, colEnd);
             return;
         }
@@ -155,21 +161,27 @@ public class ExcelTemplateEngine {
         String value = cell.getStringCellValue();
         // if value not match '{}', which means it is just a normal template string, continue to render next cell
         Matcher matcher = matchAllText.matcher(value);
-        if(!matcher.find())
+        if (!matcher.find())
             renderTemplate(sheet, dataToRender, rowStart, ++colStart, rowEnd, colEnd);
-        else if(renderPrimitiveValue(cell, dataToRender)){
+        else if (renderPrimitiveValue(cell, dataToRender)) {
             renderTemplate(sheet, dataToRender, rowStart, ++colStart, rowEnd, colEnd);
         }
     }
 
-    public boolean renderPrimitiveValue(Cell cell, Object dataToRender){
+    /**
+     * render primitive value
+     * @param cell excel cell
+     * @param dataToRender data to render
+     * @return whether the cell value match the primitive value syntax {variable}
+     */
+    public boolean renderPrimitiveValue(Cell cell, Object dataToRender) {
         Matcher matcher = varNameText.matcher(cell.getStringCellValue());
-        if(matcher.find()){
+        if (matcher.find()) {
             String matched = matcher.group();
             matched = matched.substring(1, matched.length() - 1);
             try {
                 // null object to render an empty string
-                if(dataToRender == null) {
+                if (dataToRender == null) {
                     cell.setCellValue("");
                     return true;
                 }
@@ -186,4 +198,20 @@ public class ExcelTemplateEngine {
         return false;
     }
 
+    /**
+     * render {include:template name:var name}
+     * @param cell excel cell
+     * @param template template name
+     * @param dataToRender data to render
+     * @return whether the cell match template syntax {include:template name:var name}
+     */
+    public boolean renderIncludeTemplate(Cell cell, String template, Object dataToRender) {
+        Matcher matcher = includeText.matcher(cell.getStringCellValue());
+        if(matcher.find()) {
+            String matched = matcher.group();
+
+            return true;
+        }
+        return false;
+    }
 }

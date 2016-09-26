@@ -22,6 +22,10 @@ import static org.junit.Assert.*;
  */
 public class ExcelTemplateEngineTest {
 
+    private final String filePath = "D:\\test.xlsx";
+
+    // private final String filePathForMac = "/Users/chenqi/Develop/test.xlsx";
+
     @Test
     public void testBraceRegex() throws Exception {
         Pattern loopText = Pattern.compile("\\{loop:([a-zA-Z_0-9]+):([a-zA-Z_0-9.]+)}");
@@ -97,11 +101,12 @@ public class ExcelTemplateEngineTest {
         ExcelTemplateEngine templateEngine =
                 new ExcelTemplateEngine(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
         templateEngine.renderTemplate(templateEngine.workbook.getSheet("订单"), new Order(), 0, 0, 1, 3);
-        File file = new File("/Users/chenqi/Develop/test.xlsx");
+        File file = new File(filePath);
         if(!file.exists()) {
-            file.createNewFile();
+            boolean created = file.createNewFile();
+            Assert.assertTrue(created);
         }
-        FileOutputStream fileOutputStream = new FileOutputStream("/Users/chenqi/Develop/test.xlsx");
+        FileOutputStream fileOutputStream = new FileOutputStream(filePath);
 
         ByteArrayOutputStream byteArrayOutputStream = (ByteArrayOutputStream)templateEngine.getResultOutputStream();
         fileOutputStream.write(byteArrayOutputStream.toByteArray());
@@ -114,14 +119,20 @@ public class ExcelTemplateEngineTest {
         Sheet sheet = templateEngine.workbook.getSheet("订单");
         templateEngine.renderPrimitiveValue(sheet.getRow(1).getCell(1), null);
 
-        File file = new File("/Users/chenqi/Develop/test.xlsx");
+        File file = new File(filePath);
         if(!file.exists()) {
-            file.createNewFile();
+            boolean created = file.createNewFile();
+            Assert.assertTrue(created);
         }
-        FileOutputStream fileOutputStream = new FileOutputStream("/Users/chenqi/Develop/test.xlsx");
+        FileOutputStream fileOutputStream = new FileOutputStream(filePath);
 
         ByteArrayOutputStream byteArrayOutputStream = (ByteArrayOutputStream)templateEngine.getResultOutputStream();
         fileOutputStream.write(byteArrayOutputStream.toByteArray());
+    }
+
+    public void testMatchInclude() throws IOException {
+        ExcelTemplateEngine templateEngine =
+                new ExcelTemplateEngine(getClass().getClassLoader().getResource("OrderTest.xlsx").getPath());
     }
 }
 
